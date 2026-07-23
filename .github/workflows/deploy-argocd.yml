@@ -59,8 +59,11 @@ jobs:
           PROJECT=$(cat deploy/argocd/project.yaml | yq -o=json .)
           NAME=$(echo "$PROJECT" | jq -r .metadata.name)
 
-          if curl -sS -o /dev/null -w "%{http_code}" -H "$AUTH" "$ARGOCD_SERVER/api/v1/projects/$NAME" | grep -q 200; then
+          EXISTING=$(curl -sS -H "$AUTH" "$ARGOCD_SERVER/api/v1/projects/$NAME")
+          if echo "$EXISTING" | jq -e .metadata.resourceVersion > /dev/null 2>&1; then
             echo "Project $NAME exists — updating spec"
+            RV=$(echo "$EXISTING" | jq -r .metadata.resourceVersion)
+            PROJECT=$(echo "$PROJECT" | jq --arg rv "$RV" '.metadata.resourceVersion = $rv')
             curl -sS --fail-with-body -X PUT "$ARGOCD_SERVER/api/v1/projects/$NAME" \
               -H "$AUTH" -H "Content-Type: application/json" \
               -d "{\"project\": $PROJECT}"
