@@ -1,23 +1,36 @@
-# Requires the OT-CONTAINER-KIT Redis Operator (redis.redis.opstreelabs.in).
-# VERIFY THIS MATCHES WHAT'S ACTUALLY INSTALLED on the target cluster before
-# syncing — `kubectl get crds | grep -i redis` — and swap apiVersion/kind
-# below if the fleet uses a different operator (e.g. spotahome RedisFailover).
+# Matches this fleet's convention (confirmed live on cmi-backend-production,
+# lycoris-development, etc.): Redis CR named "redis", auth via a redis-auth
+# Secret (key "password"), redisExporter enabled on port 9121 named
+# "redis-exporter", scraped by a ServiceMonitor selecting app=redis.
+#
+# The password below is a generated placeholder committed directly to git,
+# matching how the rest of this fleet does it today (no sealed-secrets/
+# external-secrets operator is installed on this cluster) — rotate it if
+# this repo's visibility or threat model changes.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-auth
+  namespace: demo-stack-staging
+type: Opaque
+stringData:
+  password: "Y1748pp6FDb8DEh48Pv9Ka2_gmuvPZSx"
+---
 apiVersion: redis.redis.opstreelabs.in/v1beta2
 kind: Redis
 metadata:
-  name: demo-stack-redis
+  name: redis
   namespace: demo-stack-staging
 spec:
   kubernetesConfig:
-    image: quay.io/opstree/redis:v7.0.15
+    image: quay.io/opstree/redis:latest
     imagePullPolicy: IfNotPresent
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 250m
-        memory: 256Mi
+    redisSecret:
+      name: redis-auth
+      key: password
+  podSecurityContext:
+    fsGroup: 1000
+    runAsUser: 1000
   storage:
     volumeClaimTemplate:
       spec:
@@ -28,19 +41,18 @@ spec:
   redisExporter:
     enabled: true
     image: quay.io/opstree/redis-exporter:v1.44.0
+    imagePullPolicy: Always
+    port: 9121
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: demo-stack-redis
+  name: redis-exporter
   namespace: demo-stack-staging
-  labels:
-    app.kubernetes.io/part-of: demo-stack
 spec:
   selector:
     matchLabels:
-      app: demo-stack-redis
-      redis_setup_type: standalone
+      app: redis
   endpoints:
     - port: redis-exporter
       path: /metrics

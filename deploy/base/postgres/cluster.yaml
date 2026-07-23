@@ -1,13 +1,19 @@
-# Requires the CloudNativePG operator (already installed fleet-wide — see
-# cnpg_* metrics in the VictoriaMetrics catalog).
+# Matches this fleet's convention (confirmed live via kubectl against
+# bank-projects-development etc.): Cluster named "postgresql" per namespace,
+# imageCatalogRef against the shared postgresql-system-trixie catalog rather
+# than a raw imageName.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: demo-stack-postgres
+  name: postgresql
   namespace: demo-stack-staging
 spec:
   instances: 1
-  imageName: ghcr.io/cloudnative-pg/postgresql:16
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: postgresql-system-trixie
+    major: 16
   storage:
     size: 2Gi
   bootstrap:

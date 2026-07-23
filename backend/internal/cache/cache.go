@@ -11,8 +11,8 @@ type Cache struct {
 	client *redis.Client
 }
 
-func Connect(addr string) *Cache {
-	return &Cache{client: redis.NewClient(&redis.Options{Addr: addr})}
+func Connect(addr, password string) *Cache {
+	return &Cache{client: redis.NewClient(&redis.Options{Addr: addr, Password: password})}
 }
 
 func (c *Cache) Ping(ctx context.Context) error {

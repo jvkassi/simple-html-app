@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: demo-stack-backend
+  name: backend
   namespace: demo-stack-staging
   labels:
-    app: demo-stack-backend
+    app: backend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: demo-stack-backend
+      app: backend
   template:
     metadata:
       labels:
-        app: demo-stack-backend
+        app: backend
     spec:
       containers:
         - name: backend
@@ -25,10 +25,15 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: demo-stack-postgres-app
+                  name: postgresql-app
                   key: uri
             - name: REDIS_ADDR
-              value: demo-stack-redis.demo-stack-staging.svc.cluster.local:6379
+              value: redis.demo-stack-staging.svc.cluster.local:6379
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-auth
+                  key: password
           readinessProbe:
             httpGet:
               path: /readyz
@@ -52,13 +57,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: demo-stack-backend
+  name: backend
   namespace: demo-stack-staging
   labels:
-    app: demo-stack-backend
+    app: backend
 spec:
   selector:
-    app: demo-stack-backend
+    app: backend
   ports:
     - name: http
       port: 8080
@@ -67,14 +72,12 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: demo-stack-backend
+  name: backend
   namespace: demo-stack-staging
-  labels:
-    app.kubernetes.io/part-of: demo-stack
 spec:
   selector:
     matchLabels:
-      app: demo-stack-backend
+      app: backend
   endpoints:
     - port: http
       path: /metrics

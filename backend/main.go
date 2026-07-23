@@ -50,6 +50,7 @@ func main() {
 
 	dsn := requireEnv(logger, "DATABASE_URL")
 	redisAddr := requireEnv(logger, "REDIS_ADDR")
+	redisPassword := os.Getenv("REDIS_PASSWORD")
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -66,7 +67,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	rdb := cache.Connect(redisAddr)
+	rdb := cache.Connect(redisAddr, redisPassword)
 
 	srv := newServer(pool, rdb, logger)
 

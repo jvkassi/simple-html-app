@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: demo-stack-frontend
+  name: frontend
   namespace: demo-stack-staging
   labels:
-    app: demo-stack-frontend
+    app: frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: demo-stack-frontend
+      app: frontend
   template:
     metadata:
       labels:
-        app: demo-stack-frontend
+        app: frontend
     spec:
       containers:
         - name: frontend
@@ -40,13 +40,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: demo-stack-frontend
+  name: frontend
   namespace: demo-stack-staging
   labels:
-    app: demo-stack-frontend
+    app: frontend
 spec:
   selector:
-    app: demo-stack-frontend
+    app: frontend
   ports:
     - name: http
       port: 8080
@@ -69,13 +69,13 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: demo-stack-backend
+                name: backend
                 port:
                   number: 8080
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: demo-stack-frontend
+                name: frontend
                 port:
                   number: 8080
