@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Application HTML</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f4f4f9; color: #333; }
+        h1 { color: #5a5a8c; }
+        p { font-size: 1.2rem; }
+        #notes-app { max-width: 480px; margin: 40px auto; text-align: left; }
+        #notes-app input { width: 70%; padding: 8px; }
+        #notes-app button { padding: 8px 16px; }
+        #notes-list { list-style: none; padding: 0; margin-top: 20px; }
+        #notes-list li { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 8px; }
+        #status { font-size: 0.9rem; color: #888; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Bienvenue sur ma première application HTML !</h1>
+    <p>Ce dépôt est prêt pour commencer le développement.</p>
+
+    <div id="notes-app">
+        <h2>Notes (demo backend + Postgres + Redis)</h2>
+        <form id="note-form">
+            <input id="note-body" type="text" placeholder="Write a note..." required>
+            <button type="submit">Add</button>
+        </form>
+        <p id="status"></p>
+        <ul id="notes-list"></ul>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        const list = document.getElementById('notes-list');
+        const status = document.getElementById('status');
+
+        async function loadNotes() {
+            status.textContent = 'Loading...';
+            try {
+                const res = await fetch(`${API_BASE}/notes`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const notes = await res.json();
+                list.innerHTML = '';
+                notes.forEach(n => {
+                    const li = document.createElement('li');
+                    li.textContent = `#${n.id} — ${n.body}`;
+                    list.appendChild(li);
+                });
+                status.textContent = `${notes.length} note(s)`;
+            } catch (err) {
+                status.textContent = `Backend unavailable: ${err.message}`;
+            }
+        }
+
+        document.getElementById('note-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('note-body');
+            const body = input.value.trim();
+            if (!body) return;
+            try {
+                const res = await fetch(`${API_BASE}/notes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ body }),
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                input.value = '';
+                await loadNotes();
+            } catch (err) {
+                status.textContent = `Failed to save note: ${err.message}`;
+            }
+        });
+
+        loadNotes();
+    </script>
+</body>
+</html>

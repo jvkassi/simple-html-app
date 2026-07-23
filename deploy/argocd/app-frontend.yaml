@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: synelia-demo-stack-staging-frontend
+  namespace: argocd
+spec:
+  project: synelia-demo-stack-staging
+  source:
+    repoURL: https://github.com/jvkassi/simple-html-app.git
+    targetRevision: main
+    path: deploy/base/frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo-stack-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,99 @@
+name: Deploy to ArgoCD
+
+# Runs on a GitHub-hosted runner (normal internet egress) rather than any
+# sandboxed dev session, since argocd.k8s.abj.smile.ci is only reachable
+# from networks the org's egress policy allows.
+#
+# Required repository secrets (Settings > Secrets and variables > Actions):
+#   ARGOCD_SERVER   - e.g. https://argocd.k8s.abj.smile.ci (defaults below if unset)
+#   ARGOCD_USERNAME - ArgoCD account with permission to create AppProjects/Applications
+#   ARGOCD_PASSWORD - that account's password (rotate immediately if it was ever
+#                      shared outside a secret store)
+#
+# This workflow only creates/updates the AppProject and the 4 Applications
+# (idempotent upsert). Actual manifest sync is left to ArgoCD's own automated
+# sync policy on each Application, so this job does not need cluster access.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "deploy/**"
+      - ".github/workflows/deploy-argocd.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER || 'https://argocd.k8s.abj.smile.ci' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo curl -sSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Log in to ArgoCD
+        run: |
+          set -euo pipefail
+          TOKEN=$(curl -sS --fail-with-body -X POST "$ARGOCD_SERVER/api/v1/session" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${{ secrets.ARGOCD_USERNAME }}\",\"password\":\"${{ secrets.ARGOCD_PASSWORD }}\"}" \
+            | jq -r .token)
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "::error::ArgoCD login failed"
+            exit 1
+          fi
+          echo "ARGOCD_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Upsert AppProject
+        run: |
+          set -euo pipefail
+          AUTH="Authorization: Bearer $ARGOCD_TOKEN"
+          PROJECT=$(cat deploy/argocd/project.yaml | yq -o=json .)
+          NAME=$(echo "$PROJECT" | jq -r .metadata.name)
+
+          if curl -sS -o /dev/null -w "%{http_code}" -H "$AUTH" "$ARGOCD_SERVER/api/v1/projects/$NAME" | grep -q 200; then
+            echo "Project $NAME exists — updating spec"
+            curl -sS --fail-with-body -X PUT "$ARGOCD_SERVER/api/v1/projects/$NAME" \
+              -H "$AUTH" -H "Content-Type: application/json" \
+              -d "{\"project\": $PROJECT}"
+          else
+            echo "Creating project $NAME"
+            curl -sS --fail-with-body -X POST "$ARGOCD_SERVER/api/v1/projects" \
+              -H "$AUTH" -H "Content-Type: application/json" \
+              -d "{\"project\": $PROJECT}"
+          fi
+
+      - name: Upsert Applications
+        run: |
+          set -euo pipefail
+          AUTH="Authorization: Bearer $ARGOCD_TOKEN"
+          for f in deploy/argocd/app-*.yaml; do
+            APP=$(cat "$f" | yq -o=json .)
+            NAME=$(echo "$APP" | jq -r .metadata.name)
+
+            if curl -sS -o /dev/null -w "%{http_code}" -H "$AUTH" "$ARGOCD_SERVER/api/v1/applications/$NAME" | grep -q 200; then
+              echo "Application $NAME exists — updating spec"
+              SPEC=$(echo "$APP" | jq .spec)
+              curl -sS --fail-with-body -X PUT "$ARGOCD_SERVER/api/v1/applications/$NAME/spec" \
+                -H "$AUTH" -H "Content-Type: application/json" \
+                -d "$SPEC"
+            else
+              echo "Creating application $NAME"
+              curl -sS --fail-with-body -X POST "$ARGOCD_SERVER/api/v1/applications" \
+                -H "$AUTH" -H "Content-Type: application/json" \
+                -d "$APP"
+            fi
+          done
+
+      - name: Summary
+        run: |
+          echo "AppProject and Applications applied. ArgoCD's automated sync will now" \
+               "reconcile the cluster from deploy/base/*." >> "$GITHUB_STEP_SUMMARY"

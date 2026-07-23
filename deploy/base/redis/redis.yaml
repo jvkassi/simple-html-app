@@ -1,0 +1,47 @@
+# Requires the OT-CONTAINER-KIT Redis Operator (redis.redis.opstreelabs.in).
+# VERIFY THIS MATCHES WHAT'S ACTUALLY INSTALLED on the target cluster before
+# syncing — `kubectl get crds | grep -i redis` — and swap apiVersion/kind
+# below if the fleet uses a different operator (e.g. spotahome RedisFailover).
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: Redis
+metadata:
+  name: demo-stack-redis
+  namespace: demo-stack-staging
+spec:
+  kubernetesConfig:
+    image: quay.io/opstree/redis:v7.0.15
+    imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+  redisExporter:
+    enabled: true
+    image: quay.io/opstree/redis-exporter:v1.44.0
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: demo-stack-redis
+  namespace: demo-stack-staging
+  labels:
+    app.kubernetes.io/part-of: demo-stack
+spec:
+  selector:
+    matchLabels:
+      app: demo-stack-redis
+      redis_setup_type: standalone
+  endpoints:
+    - port: redis-exporter
+      path: /metrics
+      interval: 30s

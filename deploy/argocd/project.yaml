@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: synelia-demo-stack-staging
+  namespace: argocd
+spec:
+  description: "Demo full-stack (frontend/backend/redis/postgres) — synelia, demo-stack, staging"
+  sourceRepos:
+    - https://github.com/jvkassi/simple-html-app.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: demo-stack-staging
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
