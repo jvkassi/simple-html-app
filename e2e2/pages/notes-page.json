@@ -1,0 +1,10 @@
+{
+  "name": "notes-page",
+  "path": "/v2/",
+  "selectors": {
+    "noteInput": "#note-text",
+    "submitButton": "#create-note-form button[type=submit]",
+    "notesList": "#note-cards .note-card",
+    "status": "#status-bar"
+  }
+}
