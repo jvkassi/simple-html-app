@@ -1,0 +1,88 @@
+openapi: 3.0.3
+info:
+  title: Notes API
+  description: Demo backend API for the simple-html-app stack (Postgres-backed notes, Redis-cached reads).
+  version: "1.0.0"
+servers:
+  - url: https://demo-stack.k8s.abj.smile.ci/api
+    description: Production ingress
+paths:
+  /notes:
+    get:
+      operationId: listNotes
+      summary: List notes
+      responses:
+        "200":
+          description: List of notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Note"
+              example: [{ id: 1, body: "hello", created_at: "2026-07-23T10:00:00Z" }]
+    post:
+      operationId: createNote
+      summary: Create a note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteInput"
+            example: { body: "synthetic check note" }
+      responses:
+        "201":
+          description: Note created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
+        "400":
+          description: Missing or empty body
+  /notes/{id}:
+    get:
+      operationId: getNote
+      summary: Get a note by id (Redis-cached)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: The note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
+        "400":
+          description: Invalid id
+        "404":
+          description: Not found
+  # NOTE: /healthz and /readyz deliberately excluded — they're internal
+  # kubelet probe endpoints on the backend's ClusterIP, not part of the
+  # public API surface (the Ingress only routes /api/* to the backend, so
+  # these aren't externally reachable at all). A synthetic check hitting
+  # them under this spec's server URL would be testing the wrong thing.
+components:
+  schemas:
+    NoteInput:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+    Note:
+      type: object
+      properties:
+        id:
+          type: integer
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time

@@ -1,0 +1,11 @@
+{
+  "name": "create-and-view-note",
+  "page": "notes-page",
+  "steps": [
+    { "action": "goto" },
+    { "action": "fill", "target": "noteInput", "value": "Synthetic check {{ts}}" },
+    { "action": "click", "target": "submitButton" },
+    { "action": "waitFor", "target": "notesList" },
+    { "action": "assertContains", "target": "status", "value": "note(s)" }
+  ]
+}
