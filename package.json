@@ -2,8 +2,8 @@
   "name": "simple-html-app",
   "private": true,
   "scripts": {
-    "test:api": "npx --yes @openapitools/openapi-generator-cli generate -i api/openapi.yaml -g k6 -o api/generated && k6 run api/generated/script.js",
-    "test:e2e": "K6_BROWSER_HEADLESS=true k6 run e2e/test.js",
-    "test:e2e2": "K6_BROWSER_HEADLESS=true k6 run e2e2/test.js"
+    "test:api": "npx --yes @openapitools/openapi-generator-cli generate -i backend/api/openapi.yaml -g k6 -o backend/api/generated && k6 run backend/api/generated/script.js",
+    "test:e2e": "K6_BROWSER_HEADLESS=true k6 run frontend/e2e/test.js",
+    "test:e2e2": "K6_BROWSER_HEADLESS=true k6 run frontend2/e2e/test.js"
   }
 }

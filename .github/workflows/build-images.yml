@@ -9,9 +9,6 @@ on:
       - "frontend/**"
       - "frontend2/**"
       - "backend/**"
-      - "api/**"
-      - "e2e/**"
-      - "e2e2/**"
       - "package.json"
       - "openapitools.json"
       - ".github/workflows/build-images.yml"
@@ -28,14 +25,14 @@ jobs:
       matrix:
         include:
           - component: frontend
-            context: frontend
-            dockerfile: frontend/Dockerfile
+            context: frontend/src
+            dockerfile: frontend/src/Dockerfile
           - component: frontend2
-            context: frontend2
-            dockerfile: frontend2/Dockerfile
+            context: frontend2/src
+            dockerfile: frontend2/src/Dockerfile
           - component: backend
-            context: backend
-            dockerfile: backend/Dockerfile
+            context: backend/src
+            dockerfile: backend/src/Dockerfile
           - component: api-test
             context: .
             dockerfile: /tmp/api-test.Dockerfile
@@ -48,10 +45,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # api/ and e2e/ are just test assets (OpenAPI spec / declarative JSON
-      # scenarios) — the Dockerfile that packages them into a runnable k6
-      # image is pipeline plumbing, not app source, so it's generated here
-      # instead of living as a committed file.
+      # backend/api/ and frontend*/e2e/ are just test assets (OpenAPI spec /
+      # plain k6 browser scripts) — the Dockerfile that packages them into a
+      # runnable k6 image is pipeline plumbing, not app source, so it's
+      # generated here instead of living as a committed file.
       - name: Write api-test Dockerfile
         if: matrix.component == 'api-test'
         run: |
@@ -59,7 +56,7 @@ jobs:
           FROM node:20-alpine AS generator
           RUN apk add --no-cache openjdk17-jre
           WORKDIR /gen
-          COPY api/openapi.yaml openapitools.json ./
+          COPY backend/api/openapi.yaml openapitools.json ./
           RUN npx --yes @openapitools/openapi-generator-cli generate -i openapi.yaml -g k6 -o generated
 
           FROM grafana/k6:2.1.0
@@ -72,7 +69,7 @@ jobs:
         run: |
           cat > /tmp/e2e-test.Dockerfile <<'EOF'
           FROM grafana/k6:2.1.0-with-browser
-          COPY e2e/ /e2e/
+          COPY frontend/e2e/ /e2e/
           WORKDIR /e2e
           ENTRYPOINT ["k6", "run", "test.js"]
           EOF
@@ -82,7 +79,7 @@ jobs:
         run: |
           cat > /tmp/e2e2-test.Dockerfile <<'EOF'
           FROM grafana/k6:2.1.0-with-browser
-          COPY e2e2/ /e2e2/
+          COPY frontend2/e2e/ /e2e2/
           WORKDIR /e2e2
           ENTRYPOINT ["k6", "run", "test.js"]
           EOF

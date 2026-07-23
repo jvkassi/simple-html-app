@@ -9,16 +9,18 @@ Regenerate the k6 script after any spec change:
 
 ```sh
 npx --yes @openapitools/openapi-generator-cli generate \
-  -i api/openapi.yaml -g k6 -o api/generated
+  -i backend/api/openapi.yaml -g k6 -o backend/api/generated
 ```
 
 Run it:
 
 ```sh
-k6 run api/generated/script.js
+k6 run backend/api/generated/script.js
+# or via the npm script from the repo root:
+npm run test:api
 ```
 
-`api/generated/` is a build artifact (regenerate, don't hand-edit) — not
-committed. Same pattern works with a Postman collection instead of
-OpenAPI via [`postman-to-k6`](https://github.com/grafana/postman-to-k6)
+`backend/api/generated/` is a build artifact (regenerate, don't
+hand-edit) — not committed. Same pattern works with a Postman collection
+instead of OpenAPI via [`postman-to-k6`](https://github.com/grafana/postman-to-k6)
 if a team already maintains one of those instead.

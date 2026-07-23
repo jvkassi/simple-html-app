@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/jvkassi/simple-html-app.git
     targetRevision: main
-    path: deploy/base/backend
+    path: backend/manifests
   destination:
     server: https://kubernetes.default.svc
     namespace: demo-stack-staging
