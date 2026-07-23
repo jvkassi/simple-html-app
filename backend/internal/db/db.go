@@ -3,14 +3,15 @@ package db
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Note struct {
-	ID        int64  `json:"id"`
-	Body      string `json:"body"`
-	CreatedAt string `json:"created_at"`
+	ID        int64     `json:"id"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func Connect(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
