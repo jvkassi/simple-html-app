@@ -110,9 +110,24 @@ func newServer(pool *pgxpool.Pool, rdb *cache.Cache, logger *slog.Logger) *http.
 
 	return &http.Server{
 		Addr:              ":8080",
-		Handler:           withCORS(mux),
+		Handler:           withAccessLog(logger, withCORS(mux)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
+}
+
+func withAccessLog(logger *slog.Logger, h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		sw := &statusWriter{ResponseWriter: w, status: 200}
+		h.ServeHTTP(sw, r)
+		logger.Info("request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", sw.status,
+			"duration_ms", time.Since(start).Milliseconds(),
+			"remote_addr", r.RemoteAddr,
+		)
+	})
 }
 
 func requireEnv(logger *slog.Logger, name string) string {
