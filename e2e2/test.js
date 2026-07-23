@@ -1,11 +1,7 @@
 import { browser } from "k6/browser";
-import { runScenario } from "../e2e/lib/runner.js";
+import { check } from "k6";
 
 const BASE_URL = __ENV.BASE_URL || "https://demo-stack.k8s.abj.smile.ci";
-const SCENARIO_FILE = __ENV.SCENARIO || "./scenarios/create-and-view-note.json";
-
-const scenario = JSON.parse(open(SCENARIO_FILE));
-const pageDef = JSON.parse(open(`./pages/${scenario.page}.json`));
 
 export const options = {
   scenarios: {
@@ -21,7 +17,19 @@ export const options = {
 export default async function () {
   const page = await browser.newPage();
   try {
-    await runScenario(page, BASE_URL, pageDef, scenario);
+    await page.goto(BASE_URL + "/v2/");
+
+    await page.locator("#note-text").fill(`Synthetic check v2 ${Date.now()}`);
+    await page.locator("#create-note-form button[type=submit]").click();
+
+    // .first() avoids a Playwright strict-mode violation — the selector
+    // legitimately matches every existing note, we just need one to exist.
+    await page.locator("#note-cards .note-card").first().waitFor();
+
+    const status = await page.locator("#status-bar").textContent();
+    check(status, {
+      "status shows note count": (s) => s.includes("note(s)"),
+    });
   } finally {
     await page.close();
   }

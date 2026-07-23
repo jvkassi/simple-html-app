@@ -77,16 +77,11 @@ jobs:
           ENTRYPOINT ["k6", "run", "test.js"]
           EOF
 
-      # e2e2's test.js imports the shared runner from ../e2e/lib/ (no
-      # duplicated copy of runner.js) — both dirs get copied so that
-      # relative import resolves the same way it does when run locally
-      # from the repo root.
       - name: Write e2e2-test Dockerfile
         if: matrix.component == 'e2e2-test'
         run: |
           cat > /tmp/e2e2-test.Dockerfile <<'EOF'
           FROM grafana/k6:2.1.0-with-browser
-          COPY e2e/lib/ /e2e/lib/
           COPY e2e2/ /e2e2/
           WORKDIR /e2e2
           ENTRYPOINT ["k6", "run", "test.js"]
