@@ -59,8 +59,6 @@ kind: Ingress
 metadata:
   name: demo-stack
   namespace: demo-stack-staging
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
   ingressClassName: traefik
   rules:
