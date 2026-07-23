@@ -8,6 +8,10 @@ on:
     paths:
       - "frontend/**"
       - "backend/**"
+      - "api/**"
+      - "e2e/**"
+      - "package.json"
+      - "openapitools.json"
       - ".github/workflows/build-images.yml"
   workflow_dispatch: {}
 
@@ -20,7 +24,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        component: [frontend, backend]
+        include:
+          - component: frontend
+            context: frontend
+            dockerfile: frontend/Dockerfile
+          - component: backend
+            context: backend
+            dockerfile: backend/Dockerfile
+          - component: api-test
+            context: .
+            dockerfile: api/Dockerfile
+          - component: e2e-test
+            context: .
+            dockerfile: e2e/Dockerfile
     steps:
       - uses: actions/checkout@v4
 
@@ -42,7 +58,8 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.component }}
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
